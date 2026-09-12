@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import type { Room } from '@colyseus/sdk';
 import { CHARACTERS, DIFFICULTIES, MAPS, MSG, ROLES, type CharacterId, type GameView, type RoleId } from '@wse/shared';
+import { WeaponCodex } from './WeaponCodex';
 
 type Props = { room: Room; view: GameView; leave: () => void };
 export function Lobby({ room, view, leave }: Props): React.JSX.Element {
+  const [codexOpen, setCodexOpen] = useState(false);
   const isHost = view.hostId === room.sessionId;
   const me = view.players.get(room.sessionId);
   const players = [...view.players.entries()];
   return <section className="lobby-screen">
-    <div className="lobby-top"><div><span className="eyebrow">READY ROOM / CHARACTER SELECT</span><h2>출전 준비</h2><p>각자 캐릭터를 선택하세요. 방장이 정한 전장과 난이도로 함께 출전합니다.</p></div><button className="text-button" onClick={leave}>← 방 나가기</button></div>
+    <div className="lobby-top"><div><span className="eyebrow">READY ROOM / CHARACTER SELECT</span><h2>출전 준비</h2><p>각자 캐릭터를 선택하세요. 방장이 정한 전장과 난이도로 함께 출전합니다.</p></div><div className="lobby-top-actions"><button className="text-button" onClick={() => setCodexOpen(true)}>무기 도감</button><button className="text-button" onClick={leave}>← 방 나가기</button></div></div>
     <div className="lobby-layout">
       <aside className="lobby-party">
         <div className="party-title"><span>파티</span><small>{players.length} / 2</small></div>
@@ -28,5 +31,6 @@ export function Lobby({ room, view, leave }: Props): React.JSX.Element {
         <div className="arena-summary"><div><span className="eyebrow">ROOM RULES / FIXED</span><h3>이번 전장</h3><p>방을 만들 때 정한 설정입니다.</p></div><div className="summary-tags"><span>맵 <strong>{MAPS[view.map]?.name ?? '폐허'}</strong></span><span>난이도 <strong>{DIFFICULTIES[view.difficulty]?.name ?? '보통'}</strong></span></div></div>
       </div>
     </div>
+    {codexOpen && <WeaponCodex player={me} onClose={() => setCodexOpen(false)} />}
   </section>;
 }

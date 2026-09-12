@@ -40,7 +40,10 @@ export class LobbyRoom extends Room<{ state: GameState }> {
       }
     });
     this.onMessage(MSG.START, client => {
-      if (client.sessionId === this.state.hostId && this.state.phase === 'lobby') this.state.phase = 'running';
+      if (client.sessionId === this.state.hostId && this.state.phase === 'lobby') {
+        for (const player of this.state.players.values()) player.pendingEvolution = 'basic';
+        this.state.phase = 'running';
+      }
     });
     this.onMessage(MSG.CHARACTER, (client, value: unknown) => {
       if (this.state.phase !== 'lobby' || typeof value !== 'string' || !(value in CHARACTERS)) return;

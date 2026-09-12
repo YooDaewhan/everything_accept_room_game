@@ -46,7 +46,7 @@ export function chooseUpgrade(player: Player, index: unknown, elapsedMs = 0): bo
   player.pendingUpgrade = false;
   player.choice0 = ''; player.choice1 = ''; player.choice2 = '';
   player.invulnerableUntil = elapsedMs + 3000;
-  if (UPGRADES[id].kind === 'weapon' && nextLevel === 5) player.pendingEvolution = id;
+  if (UPGRADES[id].kind === 'weapon' && nextLevel === 1) player.pendingEvolution = id;
   else queueLevelUp(player);
   return true;
 }

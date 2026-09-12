@@ -62,6 +62,8 @@ export const UPGRADES = {
 } as const;
 export type UpgradeId = keyof typeof UPGRADES;
 export type WeaponId = { [K in UpgradeId]: typeof UPGRADES[K]['kind'] extends 'weapon' ? K : never }[UpgradeId];
+export { WEAPON_BRANCHES, WEAPON_RULES, weaponDamage, weaponCooldown, weaponLevelDetail } from './weapons.js';
+export type { WeaponBranch } from './weapons.js';
 export const GAME = { width: 2400, height: 1600, viewWidth: 960, viewHeight: 540, tickMs: 50, patchMs: 100, playerSpeed: 180, playerRadius: 15, playerHp: 100, invulnerableMs: 550, attackMs: 800, attackDamage: 10, projectileSpeed: 460, projectileRadius: 5, projectileLifeMs: 1200, monsterRadius: 16, monsterSpeed: 65, monsterHp: 30, monsterDamage: 10, monsterHitMs: 900, spawnMs: 1400, maxMonsters: 35, gemRadius: 10, gemXp: 5 } as const;
 export type InputMessage = { x: number; y: number; aimX?: number; aimY?: number };
 export type EntityView = { x: number; y: number };

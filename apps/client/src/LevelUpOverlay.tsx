@@ -18,7 +18,7 @@ export function LevelUpOverlay({ room, player }: { room: Room; player: PlayerVie
           <span className="levelup-symbol">{upgrade.symbol}</span>
           <strong>{upgrade.name}</strong>
           <small>{upgrade.description}</small>
-          <span className="levelup-next">{current === 0 ? '새로 획득' : `LV ${current} → LV ${current + 1}`}</span>
+          <span className="levelup-next">{current === 0 ? upgrade.kind === 'weapon' ? '새로 획득 · F/T 타입 선택' : '새로 획득' : `LV ${current} → LV ${current + 1}`}</span>
         </button>;
       })}</div>
       <div className="levelup-footer">3개 중 하나를 선택하세요</div>

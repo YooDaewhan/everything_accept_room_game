@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHARACTERS, GAME, MONSTER_KINDS, UPGRADES } from '@wse/shared';
+import { CHARACTERS, GAME, MONSTER_KINDS, UPGRADES, WEAPON_RULES, weaponCooldown, weaponDamage, weaponLevelDetail } from '@wse/shared';
 import { GameState, Player, Monster } from '../apps/server/dist/schema/GameState.js';
 import { Simulation } from '../apps/server/dist/simulation/Simulation.js';
 import { awardXp, chooseEvolution, chooseUpgrade } from '../apps/server/dist/systems/Progression.js';
@@ -46,6 +46,8 @@ test('level-up offers three distinct choices including a weapon, then upgrades a
   if (orbitIndex >= 0) chooseUpgrade(player, orbitIndex);
   else { player.choice0 = 'orbit'; chooseUpgrade(player, 0); }
   assert.equal(player.upgrades.get('orbit'), 1);
+  assert.equal(player.pendingEvolution, 'orbit');
+  assert.equal(chooseEvolution(player, 'F', 0), true);
   assert.equal(chooseUpgrade(player, 0), false);
   awardXp(player, 32);
   player.choice0 = 'orbit';
@@ -54,9 +56,8 @@ test('level-up offers three distinct choices including a weapon, then upgrades a
   assert.equal(player.upgrades.get('orbit'), 2);
 });
 
-test('level 5 weapon opens F/T evolution, choice grants 3 seconds invulnerability, and level 10 leaves upgrade pool', () => {
+test('first weapon acquisition opens F/T choice, later levels keep that type, and level 10 leaves upgrade pool', () => {
   const player = new Player();
-  player.upgrades.set('orbit', 4);
   awardXp(player, player.xpToNext);
   player.choice0 = 'orbit';
   assert.equal(chooseUpgrade(player, 0), true);
@@ -65,9 +66,24 @@ test('level 5 weapon opens F/T evolution, choice grants 3 seconds invulnerabilit
   assert.equal(chooseEvolution(player, 'F', 1000), true);
   assert.equal(player.evolutions.get('orbit'), 'F');
   assert.equal(player.invulnerableUntil, 4000);
+  player.upgrades.set('orbit', 4);
+  awardXp(player, player.xpToNext);
+  player.choice0 = 'orbit';
+  assert.equal(chooseUpgrade(player, 0), true);
+  assert.equal(player.upgrades.get('orbit'), 5);
+  assert.equal(player.pendingEvolution, '');
+  assert.equal(player.evolutions.get('orbit'), 'F');
   player.upgrades.set('orbit', 10);
   awardXp(player, player.xpToNext);
   assert.ok(![player.choice0, player.choice1, player.choice2].includes('orbit'));
+});
+
+test('weapon codex progression uses the same damage and cooldown rules as combat', () => {
+  assert.equal(weaponDamage('basic', 1, CHARACTERS.ranger.damage, 'assault', 0, 'F'), 11);
+  assert.equal(weaponDamage('basic', 1, CHARACTERS.ranger.damage, 'assault', 0, 'T'), 15);
+  assert.equal(weaponCooldown('basic', 'assault', 0, 'F'), WEAPON_RULES.basic.cooldown * 0.95 * 0.75);
+  assert.equal(weaponLevelDetail('orbit', 1, 'F'), '공전구 2개 · 크기 10');
+  assert.equal(weaponLevelDetail('orbit', 10, 'T'), '공전구 11개 · 크기 15');
 });
 
 test('ranged monster fires, charger dashes, and level-up player is not damaged', () => {

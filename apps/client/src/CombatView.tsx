@@ -4,6 +4,7 @@ import { CHARACTERS, DIFFICULTIES, GAME, MAPS, ROLES, UPGRADES, type CharacterId
 import { GameCanvas } from './game/GameCanvas';
 import { LevelUpOverlay } from './LevelUpOverlay';
 import { EvolutionOverlay } from './EvolutionOverlay';
+import { WeaponCodex } from './WeaponCodex';
 
 type Props = { room: Room; view: GameView; leave: () => void };
 const formatTime = (milliseconds: number) => {
@@ -15,6 +16,7 @@ export function CombatView({ room, view, leave }: Props): React.JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const [browserFullscreen, setBrowserFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState('');
+  const [codexOpen, setCodexOpen] = useState(false);
   const player = view.players.get(room.sessionId);
   const health = player ? Math.max(0, Math.min(100, player.hp / player.maxHp * 100)) : 0;
   const character = CHARACTERS[player?.character as CharacterId] ?? CHARACTERS.guardian;
@@ -62,6 +64,7 @@ export function CombatView({ room, view, leave }: Props): React.JSX.Element {
 
       <section className="hud-actions" aria-label="전투 정보와 메뉴">
         <div className="hud-kills"><span>처치</span><strong>{String(view.kills).padStart(2, '0')}</strong></div>
+        <button onClick={() => setCodexOpen(true)}>무기 도감</button>
         <button onClick={() => void toggleFullscreen()}>{browserFullscreen ? '창 화면' : '전체 화면'}</button>
         <button onClick={leave}>나가기</button>
         {fullscreenError && <span className="fullscreen-error" role="alert">{fullscreenError}</span>}
@@ -72,7 +75,7 @@ export function CombatView({ room, view, leave }: Props): React.JSX.Element {
         <div className="inventory-slots">{Array.from({ length: 6 }, (_, index) => {
           const id = ownedWeapons[index];
           const upgrade = id ? UPGRADES[id] : null;
-          return <div className={`inventory-slot ${upgrade ? 'equipped' : ''}`} key={index} title={upgrade ? `${upgrade.name} LV ${player?.upgrades.get(id)}${player?.evolutions.get(id) ? ` · ${player.evolutions.get(id)} 진화` : ''}` : '빈 슬롯'}><small>{index + 1}</small><span>{upgrade?.symbol ?? '+'}</span>{upgrade && <b>{player?.upgrades.get(id)}{player?.evolutions.get(id) ?? ''}</b>}</div>;
+          return <div className={`inventory-slot ${upgrade ? 'equipped' : ''}`} key={index} title={upgrade ? `${upgrade.name} LV ${player?.upgrades.get(id)}${player?.evolutions.get(id) ? ` · ${player.evolutions.get(id)} 타입` : ''}` : '빈 슬롯'}><small>{index + 1}</small><span>{upgrade?.symbol ?? '+'}</span>{upgrade && <b>{player?.upgrades.get(id)}{player?.evolutions.get(id) ?? ''}</b>}</div>;
         })}</div>
         <span className="inventory-caption">{ownedWeapons.map(id => `${UPGRADES[id].name} LV${player?.upgrades.get(id)}`).join(' · ')}</span>
         {bonuses.length > 0 && <div className="hud-bonuses">{bonuses.map(id => <span key={id}>{UPGRADES[id].symbol} {UPGRADES[id].name} {player?.upgrades.get(id)}</span>)}</div>}
@@ -82,6 +85,7 @@ export function CombatView({ room, view, leave }: Props): React.JSX.Element {
     </div>
     {player?.pendingUpgrade && player.alive && <LevelUpOverlay room={room} player={player} />}
     {player?.pendingEvolution && player.alive && <EvolutionOverlay room={room} player={player} />}
+    {codexOpen && <WeaponCodex player={player} onClose={() => setCodexOpen(false)} />}
     {view.phase === 'defeat' && <div className="combat-result"><div><span>RUN ENDED</span><h2>전투 종료</h2><p>모든 플레이어가 쓰러졌습니다.</p><button onClick={leave}>방 나가기</button></div></div>}
   </div>;
 }

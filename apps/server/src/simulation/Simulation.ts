@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { CHARACTERS, DIFFICULTIES, GAME, type CharacterId, type DifficultyId, type ElementId, type MapId, type MonsterKind, type WeaponId } from '@wse/shared';
+import { CHARACTERS, DIFFICULTIES, GAME, weaponCooldown, weaponDamage, type CharacterId, type DifficultyId, type ElementId, type MapId, type MonsterKind, type RoleId, type WeaponId } from '@wse/shared';
 import { MAP_MONSTER_POOLS, MONSTER_RULES, WEAPON_RULES } from '../config/combat.js';
 import { GameState, Player, Monster, Projectile, Gem } from '../schema/GameState.js';
 import { applyCombinations, awardXp, upgradeLevel } from '../systems/Progression.js';
@@ -52,10 +52,9 @@ export class Simulation {
       for (const [weapon, level] of player.upgrades) {
         if (level <= 0 || !Object.hasOwn(WEAPON_RULES, weapon)) continue;
         const weaponId = weapon as WeaponId;
-        const rule = WEAPON_RULES[weaponId];
         const clockKey = `${id}:${weaponId}`;
         if (this.elapsed < (this.attackClock.get(clockKey) ?? 0)) continue;
-        const interval = Math.max(150, rule.cooldown * Math.pow(0.88, upgradeLevel(player, 'cadence')) * (player.role === 'support' && weapon !== 'basic' ? 0.9 : player.role === 'assault' ? 0.95 : 1) * (weapon === 'basic' && player.evolutions.get(weapon) === 'F' ? 0.75 : 1));
+        const interval = weaponCooldown(weaponId, player.role as RoleId, upgradeLevel(player, 'cadence'), player.evolutions.get(weapon));
         this.attackClock.set(clockKey, this.elapsed + interval);
         this.fireWeapon(id, player, target?.[1], weaponId, level);
       }
@@ -148,7 +147,7 @@ export class Simulation {
     const autoAngle = target ? Math.atan2(target.y - player.y, target.x - player.x) : baseAngle;
     const character = CHARACTERS[player.character as CharacterId] ?? CHARACTERS.guardian;
     const branch = player.evolutions.get(weapon);
-    const damage = Math.max(1, Math.round((rule.damage + character.damage - 10) * (1 + 0.2 * (level - 1)) * (1 + 0.15 * upgradeLevel(player, 'force')) * (player.role === 'assault' ? 1.1 : player.role === 'support' ? 0.7 : 1) * (branch === 'T' && ['orbit', 'basic', 'trail'].includes(weapon) ? 1.4 : 1)));
+    const damage = weaponDamage(weapon, level, character.damage, player.role as RoleId, upgradeLevel(player, 'force'), branch);
     const element: Partial<Record<WeaponId, ElementId>> = { orbit: 'lightning', trail: 'fire', pet: 'water', meteor: 'fire', slowfield: 'water', bounce: 'lightning', cannon: 'fire' };
     if (weapon === 'basic' && character.style === 'melee') {
       for (const [id, monster] of this.state.monsters) if (distance(monster, player) < 75 && Math.cos(Math.atan2(monster.y - player.y, monster.x - player.x) - baseAngle) > 0.35) this.damageMonster(id, monster, damage);
