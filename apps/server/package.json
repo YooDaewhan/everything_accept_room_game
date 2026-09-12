@@ -1,0 +1,1 @@
+{"name":"@wse/server","private":true,"type":"module","scripts":{"dev":"tsx watch src/index.ts","typecheck":"tsc --noEmit","build":"tsc"},"dependencies":{"@wse/shared":"*","@colyseus/schema":"^5.0.27","colyseus":"^0.18.5","dotenv":"^17.2.2"},"devDependencies":{"tsx":"^4.20.6","@types/express":"^5.0.3"}}
