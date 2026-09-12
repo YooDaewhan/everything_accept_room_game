@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { Room } from '@colyseus/sdk';
 import Phaser from 'phaser';
-import { CHARACTERS, GAME, MAPS, MSG, type CharacterId, type MapId, type GameView, type EntityView } from '@wse/shared';
+import { CHARACTERS, GAME, MAPS, MONSTER_KINDS, MSG, type CharacterId, type MapId, type MonsterKind, type GameView, type EntityView } from '@wse/shared';
+
+const projectileColor: Record<string, number> = { pulse: 0xffd184, dart: 0xb8f5d1, spread: 0xb7bcff, nova: 0xe9a9ff, ember: 0xff8a69 };
 
 class ArenaScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
@@ -59,12 +61,17 @@ class ArenaScene extends Phaser.Scene {
     }
     for (const [id, bullet] of state.projectiles) {
       const p = point(this.smooth(`b${id}`, bullet, alive));
-      g.fillStyle(0xffd184); g.fillCircle(p.x, p.y, GAME.projectileRadius * zoom);
+      g.fillStyle(projectileColor[bullet.weapon] ?? 0xffd184); g.fillCircle(p.x, p.y, (bullet.weapon === 'ember' ? 8 : GAME.projectileRadius) * zoom);
     }
     for (const [id, monster] of state.monsters) {
       const p = point(this.smooth(`m${id}`, monster, alive));
-      g.fillStyle(0xf07261); g.fillCircle(p.x, p.y, GAME.monsterRadius * zoom);
-      g.lineStyle(2, 0xffb095); g.strokeCircle(p.x, p.y, GAME.monsterRadius * zoom);
+      const kind = MONSTER_KINDS[monster.kind as MonsterKind] ?? MONSTER_KINDS.grunt;
+      const radius = kind.radius * zoom;
+      g.fillStyle(kind.color);
+      if (monster.kind === 'runner') g.fillTriangle(p.x, p.y - radius, p.x + radius, p.y + radius, p.x - radius, p.y + radius);
+      else g.fillCircle(p.x, p.y, radius);
+      g.lineStyle(2, 0xffc0a7); g.strokeCircle(p.x, p.y, radius);
+      if (monster.kind === 'brute') { g.lineStyle(2, 0x4a2038); g.strokeCircle(p.x, p.y, radius * .55); }
       g.fillStyle(0x24333b); g.fillRect(p.x - 17 * zoom, p.y - 27 * zoom, 34 * zoom, 4 * zoom);
       g.fillStyle(0xff9b8c); g.fillRect(p.x - 17 * zoom, p.y - 27 * zoom, 34 * zoom * monster.hp / monster.maxHp, 4 * zoom);
     }

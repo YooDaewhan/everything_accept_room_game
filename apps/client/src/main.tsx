@@ -21,7 +21,7 @@ function App(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [map, setMap] = useState<MapId>('ruins');
-  const [difficulty, setDifficulty] = useState<DifficultyId>('normal');
+  const [difficulty, setDifficulty] = useState<DifficultyId>('easy');
 
   useEffect(() => { fetch(`${serverUrl}/health`).then(r => { if (!r.ok) throw new Error(); setHealth('online'); }).catch(() => setHealth('offline')); }, []);
   useEffect(() => {
@@ -30,7 +30,7 @@ function App(): React.JSX.Element {
       const state = room.state as GameView;
       if (!state?.players) return;
       setView({ code: state.code, phase: state.phase, hostId: state.hostId, map: state.map, difficulty: state.difficulty, elapsedMs: state.elapsedMs, kills: state.kills,
-        players: new Map([...state.players].map(([id, player]) => [id, { nickname: player.nickname, character: player.character, x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, xp: player.xp, alive: player.alive }])),
+        players: new Map([...state.players].map(([id, player]) => [id, { nickname: player.nickname, character: player.character, x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, xp: player.xp, xpToNext: player.xpToNext, level: player.level, pendingUpgrade: player.pendingUpgrade, choice0: player.choice0, choice1: player.choice1, choice2: player.choice2, upgrades: new Map(player.upgrades), alive: player.alive }])),
         monsters: new Map(state.monsters), projectiles: new Map(state.projectiles), gems: new Map(state.gems) });
     };
     room.onStateChange(sync);

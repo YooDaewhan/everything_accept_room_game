@@ -3,6 +3,7 @@ import { Room, type Client } from 'colyseus';
 import { CHARACTERS, DIFFICULTIES, GAME, MAPS, MAX_PLAYERS, MSG, NICKNAME_PATTERN, type CharacterId, type DifficultyId, type InputMessage, type MapId } from '@wse/shared';
 import { GameState, Player } from '../schema/GameState.js';
 import { Simulation } from '../simulation/Simulation.js';
+import { chooseUpgrade } from '../systems/Progression.js';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const activeCodes = new Set<string>();
 export class LobbyRoom extends Room<{ state: GameState }> {
@@ -13,7 +14,7 @@ export class LobbyRoom extends Room<{ state: GameState }> {
   onCreate(options: unknown): void {
     const settings = typeof options === 'object' && options !== null ? options as { map?: unknown; difficulty?: unknown } : {};
     const map = typeof settings.map === 'string' && settings.map in MAPS ? settings.map as MapId : 'ruins';
-    const difficulty = typeof settings.difficulty === 'string' && settings.difficulty in DIFFICULTIES ? settings.difficulty as DifficultyId : 'normal';
+    const difficulty = typeof settings.difficulty === 'string' && settings.difficulty in DIFFICULTIES ? settings.difficulty as DifficultyId : 'easy';
     let code: string;
     do { code = Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join(''); } while (activeCodes.has(code));
     activeCodes.add(code); this.code = code; this.roomId = code;
@@ -24,7 +25,8 @@ export class LobbyRoom extends Room<{ state: GameState }> {
     this.setPatchRate(GAME.patchMs);
     this.setSimulationInterval(() => this.simulation.tick(), GAME.tickMs);
     this.onMessage(MSG.INPUT, (client, payload: unknown) => {
-      if (this.state.phase !== 'running' || !this.state.players.get(client.sessionId)?.alive) return;
+      const player = this.state.players.get(client.sessionId);
+      if (this.state.phase !== 'running' || !player?.alive || player.pendingUpgrade) return;
       const now = Date.now(); if (now - (this.lastInput.get(client.sessionId) ?? 0) < 25) return;
       this.lastInput.set(client.sessionId, now);
       if (typeof payload !== 'object' || payload === null || !('x' in payload) || !('y' in payload)) return;
@@ -44,6 +46,11 @@ export class LobbyRoom extends Room<{ state: GameState }> {
       player.character = character;
       player.maxHp = CHARACTERS[character].hp;
       player.hp = player.maxHp;
+    });
+    this.onMessage(MSG.UPGRADE, (client, index: unknown) => {
+      if (this.state.phase !== 'running') return;
+      const player = this.state.players.get(client.sessionId);
+      if (player) chooseUpgrade(player, index);
     });
   }
   onAuth(_client: Client, options: unknown): boolean {
