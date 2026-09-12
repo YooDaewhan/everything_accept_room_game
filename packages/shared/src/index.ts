@@ -1,7 +1,7 @@
 export const ROOM_NAME = 'survivors';
 export const MAX_PLAYERS = 2;
 export const NICKNAME_PATTERN = /^[\p{L}\p{N}_ -]{2,16}$/u;
-export const MSG = { INPUT: 'input', START: 'start', CHARACTER: 'character', SETTINGS: 'settings' } as const;
+export const MSG = { INPUT: 'input', START: 'start', CHARACTER: 'character' } as const;
 export const CHARACTERS = {
   guardian: { name: '수호자', description: '체력이 높고 이동이 느립니다.', color: 0x65dbeb, hp: 140, speed: 150, damage: 10 },
   ranger: { name: '추적자', description: '빠르게 이동합니다.', color: 0x95e5a9, hp: 90, speed: 220, damage: 10 },

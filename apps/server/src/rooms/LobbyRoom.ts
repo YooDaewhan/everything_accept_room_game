@@ -10,11 +10,16 @@ export class LobbyRoom extends Room<{ state: GameState }> {
   private code = '';
   private simulation!: Simulation;
   private lastInput = new Map<string, number>();
-  onCreate(): void {
+  onCreate(options: unknown): void {
+    const settings = typeof options === 'object' && options !== null ? options as { map?: unknown; difficulty?: unknown } : {};
+    const map = typeof settings.map === 'string' && settings.map in MAPS ? settings.map as MapId : 'ruins';
+    const difficulty = typeof settings.difficulty === 'string' && settings.difficulty in DIFFICULTIES ? settings.difficulty as DifficultyId : 'normal';
     let code: string;
     do { code = Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join(''); } while (activeCodes.has(code));
     activeCodes.add(code); this.code = code; this.roomId = code;
     this.setState(new GameState()); this.state.code = code;
+    this.state.map = map;
+    this.state.difficulty = difficulty;
     this.simulation = new Simulation(this.state);
     this.setPatchRate(GAME.patchMs);
     this.setSimulationInterval(() => this.simulation.tick(), GAME.tickMs);
@@ -39,11 +44,6 @@ export class LobbyRoom extends Room<{ state: GameState }> {
       player.character = character;
       player.maxHp = CHARACTERS[character].hp;
       player.hp = player.maxHp;
-    });
-    this.onMessage(MSG.SETTINGS, (client, value: unknown) => {
-      if (this.state.phase !== 'lobby' || client.sessionId !== this.state.hostId || typeof value !== 'object' || value === null) return;
-      if ('map' in value && typeof value.map === 'string' && value.map in MAPS) this.state.map = value.map as MapId;
-      if ('difficulty' in value && typeof value.difficulty === 'string' && value.difficulty in DIFFICULTIES) this.state.difficulty = value.difficulty as DifficultyId;
     });
   }
   onAuth(_client: Client, options: unknown): boolean {
