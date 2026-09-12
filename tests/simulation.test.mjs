@@ -22,6 +22,8 @@ test('monster dies once and awards one gem pickup', () => {
   const simulation = new Simulation(state);
   simulation.tick(); simulation.tick();
   assert.equal(state.monsters.size, 0);
+  assert.equal(state.kills, 1);
+  assert.equal(state.elapsedMs, GAME.tickMs * 2);
   assert.equal(state.gems.size, 0);
   assert.equal(player.xp, GAME.gemXp);
   assert.equal(player.hp, GAME.playerHp - GAME.monsterDamage);

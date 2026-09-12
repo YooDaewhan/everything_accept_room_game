@@ -27,4 +27,4 @@ export type PlayerView = EntityView & { nickname: string; character: CharacterId
 export type MonsterView = EntityView & { hp: number; maxHp: number };
 export type ProjectileView = EntityView;
 export type GemView = EntityView;
-export type GameView = { code: string; phase: string; hostId: string; map: MapId; difficulty: DifficultyId; players: Map<string, PlayerView>; monsters: Map<string, MonsterView>; projectiles: Map<string, ProjectileView>; gems: Map<string, GemView> };
+export type GameView = { code: string; phase: string; hostId: string; map: MapId; difficulty: DifficultyId; elapsedMs: number; kills: number; players: Map<string, PlayerView>; monsters: Map<string, MonsterView>; projectiles: Map<string, ProjectileView>; gems: Map<string, GemView> };

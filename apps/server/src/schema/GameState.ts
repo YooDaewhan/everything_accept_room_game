@@ -26,6 +26,8 @@ export class GameState extends Schema {
   @type('string') hostId = '';
   @type('string') map = 'ruins';
   @type('string') difficulty = 'normal';
+  @type('number') elapsedMs = 0;
+  @type('number') kills = 0;
   @type({ map: Player }) players = new MapSchema<Player>();
   @type({ map: Monster }) monsters = new MapSchema<Monster>();
   @type({ map: Projectile }) projectiles = new MapSchema<Projectile>();

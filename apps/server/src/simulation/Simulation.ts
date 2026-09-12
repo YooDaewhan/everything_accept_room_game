@@ -20,6 +20,7 @@ export class Simulation {
     const dt = GAME.tickMs / 1000;
     const difficulty = DIFFICULTIES[this.state.difficulty as DifficultyId] ?? DIFFICULTIES.normal;
     this.elapsed += GAME.tickMs;
+    this.state.elapsedMs = this.elapsed;
     for (const [id, player] of this.state.players) {
       if (!player.alive) continue;
       const v = this.input.get(id) ?? { x: 0, y: 0 };
@@ -63,7 +64,7 @@ export class Simulation {
       if (hit) {
         const [monsterId, monster] = hit;
         monster.hp = Math.max(0, monster.hp - data.damage);
-        if (monster.hp === 0) { this.state.monsters.delete(monsterId); this.hitClock.delete(monsterId); const gem = new Gem(); gem.x = monster.x; gem.y = monster.y; this.state.gems.set(`${++this.nextId}`, gem); }
+        if (monster.hp === 0) { this.state.monsters.delete(monsterId); this.state.kills += 1; this.hitClock.delete(monsterId); const gem = new Gem(); gem.x = monster.x; gem.y = monster.y; this.state.gems.set(`${++this.nextId}`, gem); }
         this.state.projectiles.delete(id); this.bulletData.delete(id);
       } else if (data.ttl <= 0 || data.x < 0 || data.x > GAME.width || data.y < 0 || data.y > GAME.height) { this.state.projectiles.delete(id); this.bulletData.delete(id); }
     }
