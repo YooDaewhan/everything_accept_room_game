@@ -10,6 +10,7 @@ class ArenaScene extends Phaser.Scene {
   private keys?: Record<string, Phaser.Input.Keyboard.Key>;
   private lastSent = 0;
   private rendered = new Map<string, EntityView>();
+  private localCamera?: { x: number; y: number; fromX: number; fromY: number; toX: number; toY: number; startedAt: number };
 
   constructor(private room: Room | null) { super('arena'); }
 
@@ -31,8 +32,9 @@ class ArenaScene extends Phaser.Scene {
     const state = this.room?.state as GameView | undefined;
     const map = MAPS[state?.map as MapId] ?? MAPS.ruins;
     const me = state?.players?.get(this.room?.sessionId ?? '');
-    const cameraX = me?.x ?? GAME.width / 2;
-    const cameraY = me?.y ?? GAME.height / 2;
+    const camera = me ? this.interpolateCamera(me, time) : { x: GAME.width / 2, y: GAME.height / 2 };
+    const cameraX = camera.x;
+    const cameraY = camera.y;
     const offsetX = width / 2 - cameraX * zoom;
     const offsetY = height / 2 - cameraY * zoom;
     const point = (entity: EntityView) => ({ x: offsetX + entity.x * zoom, y: offsetY + entity.y * zoom });
@@ -84,7 +86,9 @@ class ArenaScene extends Phaser.Scene {
       g.fillStyle(0xff9b8c); g.fillRect(p.x - 17 * zoom, p.y - 27 * zoom, 34 * zoom * monster.hp / monster.maxHp, 4 * zoom);
     }
     for (const [id, player] of state.players) {
-      const p = point(this.smooth(`p${id}`, player, alive));
+      const visual = id === this.room.sessionId ? camera : this.smooth(`p${id}`, player, alive);
+      if (id === this.room.sessionId) alive.add(`p${id}`);
+      const p = point(visual);
       const radius = GAME.playerRadius * zoom;
       const color = player.alive ? (CHARACTERS[player.character as CharacterId] ?? CHARACTERS.guardian).color : 0x5b6775;
       if (id === this.room.sessionId) { g.lineStyle(1, color, 0.2); g.strokeCircle(p.x, p.y, radius * 2.3); }
@@ -107,6 +111,20 @@ class ArenaScene extends Phaser.Scene {
     current.y += (target.y - current.y) * 0.35;
     this.rendered.set(id, current);
     return current;
+  }
+
+  private interpolateCamera(target: EntityView, time: number): EntityView {
+    if (!this.localCamera) this.localCamera = { x: target.x, y: target.y, fromX: target.x, fromY: target.y, toX: target.x, toY: target.y, startedAt: time };
+    const camera = this.localCamera;
+    const progress = Math.max(0, Math.min(1, (time - camera.startedAt) / GAME.patchMs));
+    camera.x = camera.fromX + (camera.toX - camera.fromX) * progress;
+    camera.y = camera.fromY + (camera.toY - camera.fromY) * progress;
+    if (target.x !== camera.toX || target.y !== camera.toY) {
+      camera.fromX = camera.x; camera.fromY = camera.y;
+      camera.toX = target.x; camera.toY = target.y;
+      camera.startedAt = time;
+    }
+    return camera;
   }
 }
 
