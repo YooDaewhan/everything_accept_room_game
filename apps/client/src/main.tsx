@@ -30,7 +30,7 @@ function App(): React.JSX.Element {
       const state = room.state as GameView;
       if (!state?.players) return;
       setView({ code: state.code, phase: state.phase, hostId: state.hostId, map: state.map, difficulty: state.difficulty, elapsedMs: state.elapsedMs, kills: state.kills,
-        players: new Map([...state.players].map(([id, player]) => [id, { nickname: player.nickname, character: player.character, x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, xp: player.xp, xpToNext: player.xpToNext, level: player.level, pendingUpgrade: player.pendingUpgrade, choice0: player.choice0, choice1: player.choice1, choice2: player.choice2, upgrades: new Map(player.upgrades), alive: player.alive }])),
+        players: new Map([...state.players].map(([id, player]) => [id, { nickname: player.nickname, character: player.character, role: player.role, x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, xp: player.xp, xpToNext: player.xpToNext, level: player.level, pendingUpgrade: player.pendingUpgrade, pendingEvolution: player.pendingEvolution, choice0: player.choice0, choice1: player.choice1, choice2: player.choice2, upgrades: new Map(player.upgrades), evolutions: new Map(player.evolutions), invulnerableUntil: player.invulnerableUntil, alive: player.alive }])),
         monsters: new Map(state.monsters), projectiles: new Map(state.projectiles), gems: new Map(state.gems) });
     };
     room.onStateChange(sync);

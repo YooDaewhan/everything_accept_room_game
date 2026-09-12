@@ -1,9 +1,9 @@
 import { randomInt } from 'node:crypto';
 import { Room, type Client } from 'colyseus';
-import { CHARACTERS, DIFFICULTIES, GAME, MAPS, MAX_PLAYERS, MSG, NICKNAME_PATTERN, type CharacterId, type DifficultyId, type InputMessage, type MapId } from '@wse/shared';
+import { CHARACTERS, DIFFICULTIES, GAME, MAPS, MAX_PLAYERS, MSG, NICKNAME_PATTERN, ROLES, type CharacterId, type DifficultyId, type InputMessage, type MapId, type RoleId } from '@wse/shared';
 import { GameState, Player } from '../schema/GameState.js';
 import { Simulation } from '../simulation/Simulation.js';
-import { chooseUpgrade } from '../systems/Progression.js';
+import { chooseEvolution, chooseUpgrade } from '../systems/Progression.js';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const activeCodes = new Set<string>();
 export class LobbyRoom extends Room<{ state: GameState }> {
@@ -26,14 +26,18 @@ export class LobbyRoom extends Room<{ state: GameState }> {
     this.setSimulationInterval(() => this.simulation.tick(), GAME.tickMs);
     this.onMessage(MSG.INPUT, (client, payload: unknown) => {
       const player = this.state.players.get(client.sessionId);
-      if (this.state.phase !== 'running' || !player?.alive || player.pendingUpgrade) return;
+      if (this.state.phase !== 'running' || !player?.alive || player.pendingUpgrade || player.pendingEvolution) return;
       const now = Date.now(); if (now - (this.lastInput.get(client.sessionId) ?? 0) < 25) return;
       this.lastInput.set(client.sessionId, now);
       if (typeof payload !== 'object' || payload === null || !('x' in payload) || !('y' in payload)) return;
-      const { x, y } = payload as InputMessage;
+      const { x, y, aimX, aimY } = payload as InputMessage;
       if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 1 || Math.abs(y) > 1) return;
       const length = Math.hypot(x, y);
       this.simulation.input.set(client.sessionId, length > 1 ? { x: x / length, y: y / length } : { x, y });
+      if (typeof aimX === 'number' && typeof aimY === 'number' && Number.isFinite(aimX) && Number.isFinite(aimY) && Math.hypot(aimX, aimY) > 0.1 && Math.abs(aimX) <= 1 && Math.abs(aimY) <= 1) {
+        const aimLength = Math.hypot(aimX, aimY);
+        this.simulation.aim.set(client.sessionId, { x: aimX / aimLength, y: aimY / aimLength });
+      }
     });
     this.onMessage(MSG.START, client => {
       if (client.sessionId === this.state.hostId && this.state.phase === 'lobby') this.state.phase = 'running';
@@ -44,13 +48,26 @@ export class LobbyRoom extends Room<{ state: GameState }> {
       if (!player) return;
       const character = value as CharacterId;
       player.character = character;
-      player.maxHp = CHARACTERS[character].hp;
+      player.maxHp = Math.round(CHARACTERS[character].hp * (player.role === 'defense' ? 1.1 : 1));
+      player.hp = player.maxHp;
+    });
+    this.onMessage(MSG.ROLE, (client, value: unknown) => {
+      if (this.state.phase !== 'lobby' || typeof value !== 'string' || !Object.hasOwn(ROLES, value)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      player.role = value as RoleId;
+      player.maxHp = Math.round(CHARACTERS[player.character as CharacterId].hp * (player.role === 'defense' ? 1.1 : 1));
       player.hp = player.maxHp;
     });
     this.onMessage(MSG.UPGRADE, (client, index: unknown) => {
       if (this.state.phase !== 'running') return;
       const player = this.state.players.get(client.sessionId);
-      if (player) chooseUpgrade(player, index);
+      if (player) chooseUpgrade(player, index, this.state.elapsedMs);
+    });
+    this.onMessage(MSG.EVOLUTION, (client, branch: unknown) => {
+      if (this.state.phase !== 'running') return;
+      const player = this.state.players.get(client.sessionId);
+      if (player) chooseEvolution(player, branch, this.state.elapsedMs);
     });
   }
   onAuth(_client: Client, options: unknown): boolean {

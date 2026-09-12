@@ -3,6 +3,7 @@ import { GAME } from '@wse/shared';
 export class Player extends Schema {
   @type('string') nickname = '';
   @type('string') character = 'guardian';
+  @type('string') role = 'assault';
   @type('number') x = 0;
   @type('number') y = 0;
   @type('number') hp: number = GAME.playerHp;
@@ -11,12 +12,15 @@ export class Player extends Schema {
   @type('number') xpToNext = 20;
   @type('number') level = 1;
   @type('boolean') pendingUpgrade = false;
+  @type('string') pendingEvolution = '';
   @type('string') choice0 = '';
   @type('string') choice1 = '';
   @type('string') choice2 = '';
   @type({ map: 'number' }) upgrades = new MapSchema<number>();
+  @type({ map: 'string' }) evolutions = new MapSchema<string>();
+  @type('number') invulnerableUntil = 0;
   @type('boolean') alive = true;
-  constructor() { super(); this.upgrades.set('pulse', 1); }
+  constructor() { super(); this.upgrades.set('basic', 1); }
 }
 export class Monster extends Schema {
   @type('string') kind = 'grunt';
@@ -24,7 +28,8 @@ export class Monster extends Schema {
   @type('number') hp: number = GAME.monsterHp; @type('number') maxHp: number = GAME.monsterHp;
 }
 export class Projectile extends Schema {
-  @type('string') weapon = 'pulse';
+  @type('string') weapon = 'basic';
+  @type('string') owner = '';
   @type('number') x = 0; @type('number') y = 0;
 }
 export class Gem extends Schema {

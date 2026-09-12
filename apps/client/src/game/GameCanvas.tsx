@@ -3,7 +3,7 @@ import type { Room } from '@colyseus/sdk';
 import Phaser from 'phaser';
 import { CHARACTERS, GAME, MAPS, MONSTER_KINDS, MSG, type CharacterId, type MapId, type MonsterKind, type GameView, type EntityView } from '@wse/shared';
 
-const projectileColor: Record<string, number> = { pulse: 0xffd184, dart: 0xb8f5d1, spread: 0xb7bcff, nova: 0xe9a9ff, ember: 0xff8a69 };
+const projectileColor: Record<string, number> = { basic: 0xffd184, orbit: 0xe6d578, trail: 0xff8869, pet: 0x74c7f5, meteor: 0xff8869, bounce: 0xe6d578, cannon: 0xffa768, monster: 0xff6371 };
 
 class ArenaScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
@@ -19,7 +19,7 @@ class ArenaScene extends Phaser.Scene {
       this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>;
       this.input.keyboard.addCapture(['UP', 'DOWN', 'LEFT', 'RIGHT']);
     }
-    if (!this.room) this.add.text(GAME.width / 2, GAME.height / 2, 'WSE SURVIVORS · TEST ARENA', { fontFamily: 'Arial', fontSize: '20px', color: '#a8c7d8' }).setOrigin(.5);
+    if (!this.room) this.add.text(GAME.viewWidth / 2, GAME.viewHeight / 2, 'WSE SURVIVORS · TEST ARENA', { fontFamily: 'Arial', fontSize: '20px', color: '#a8c7d8' }).setOrigin(.5);
     this.events.once('shutdown', () => this.rendered.clear());
   }
 
@@ -27,12 +27,15 @@ class ArenaScene extends Phaser.Scene {
     const g = this.graphics;
     const width = this.scale.width;
     const height = this.scale.height;
-    const zoom = Math.min(width / GAME.width, height / GAME.height);
-    const offsetX = (width - GAME.width * zoom) / 2;
-    const offsetY = (height - GAME.height * zoom) / 2;
-    const point = (entity: EntityView) => ({ x: offsetX + entity.x * zoom, y: offsetY + entity.y * zoom });
+    const zoom = Math.min(width / GAME.viewWidth, height / GAME.viewHeight);
     const state = this.room?.state as GameView | undefined;
     const map = MAPS[state?.map as MapId] ?? MAPS.ruins;
+    const me = state?.players?.get(this.room?.sessionId ?? '');
+    const cameraX = me?.x ?? GAME.width / 2;
+    const cameraY = me?.y ?? GAME.height / 2;
+    const offsetX = width / 2 - cameraX * zoom;
+    const offsetY = height / 2 - cameraY * zoom;
+    const point = (entity: EntityView) => ({ x: offsetX + entity.x * zoom, y: offsetY + entity.y * zoom });
 
     g.clear();
     g.fillStyle(map.background); g.fillRect(0, 0, width, height);
@@ -51,7 +54,12 @@ class ArenaScene extends Phaser.Scene {
       let y = Number(k.S.isDown || k.DOWN.isDown) - Number(k.W.isDown || k.UP.isDown);
       const length = Math.hypot(x, y);
       if (length > 1) { x /= length; y /= length; }
-      this.room.send(MSG.INPUT, { x, y });
+      const pointer = this.input.activePointer;
+      const aimX = pointer.x - (offsetX + cameraX * zoom);
+      const aimY = pointer.y - (offsetY + cameraY * zoom);
+      const aimLength = Math.hypot(aimX, aimY);
+      const aimed = (pointer.x !== 0 || pointer.y !== 0) && aimLength > 8;
+      this.room.send(MSG.INPUT, { x, y, aimX: aimed ? aimX / aimLength : 1, aimY: aimed ? aimY / aimLength : 0 });
     }
 
     const alive = new Set<string>();
@@ -61,17 +69,17 @@ class ArenaScene extends Phaser.Scene {
     }
     for (const [id, bullet] of state.projectiles) {
       const p = point(this.smooth(`b${id}`, bullet, alive));
-      g.fillStyle(projectileColor[bullet.weapon] ?? 0xffd184); g.fillCircle(p.x, p.y, (bullet.weapon === 'ember' ? 8 : GAME.projectileRadius) * zoom);
+      g.fillStyle(projectileColor[bullet.weapon] ?? 0xffd184); g.fillCircle(p.x, p.y, (bullet.weapon === 'meteor' ? 35 : bullet.weapon === 'cannon' ? 12 : bullet.weapon === 'trail' ? 18 : GAME.projectileRadius) * zoom);
     }
     for (const [id, monster] of state.monsters) {
       const p = point(this.smooth(`m${id}`, monster, alive));
       const kind = MONSTER_KINDS[monster.kind as MonsterKind] ?? MONSTER_KINDS.grunt;
       const radius = kind.radius * zoom;
       g.fillStyle(kind.color);
-      if (monster.kind === 'runner') g.fillTriangle(p.x, p.y - radius, p.x + radius, p.y + radius, p.x - radius, p.y + radius);
+      if (monster.kind === 'ranger') g.fillTriangle(p.x, p.y - radius, p.x + radius, p.y + radius, p.x - radius, p.y + radius);
       else g.fillCircle(p.x, p.y, radius);
       g.lineStyle(2, 0xffc0a7); g.strokeCircle(p.x, p.y, radius);
-      if (monster.kind === 'brute') { g.lineStyle(2, 0x4a2038); g.strokeCircle(p.x, p.y, radius * .55); }
+      if (monster.kind === 'charger') { g.lineStyle(2, 0x4a2038); g.strokeCircle(p.x, p.y, radius * .55); }
       g.fillStyle(0x24333b); g.fillRect(p.x - 17 * zoom, p.y - 27 * zoom, 34 * zoom, 4 * zoom);
       g.fillStyle(0xff9b8c); g.fillRect(p.x - 17 * zoom, p.y - 27 * zoom, 34 * zoom * monster.hp / monster.maxHp, 4 * zoom);
     }
@@ -80,7 +88,11 @@ class ArenaScene extends Phaser.Scene {
       const radius = GAME.playerRadius * zoom;
       const color = player.alive ? (CHARACTERS[player.character as CharacterId] ?? CHARACTERS.guardian).color : 0x5b6775;
       if (id === this.room.sessionId) { g.lineStyle(1, color, 0.2); g.strokeCircle(p.x, p.y, radius * 2.3); }
-      g.fillStyle(color); g.fillCircle(p.x, p.y, radius);
+      const fieldLevel = player.upgrades.get('slowfield') ?? 0;
+      if (fieldLevel > 0) { g.fillStyle(0x74c7f5, .05); g.fillCircle(p.x, p.y, (130 + fieldLevel * 10) * zoom); g.lineStyle(1, 0x74c7f5, .26); g.strokeCircle(p.x, p.y, (130 + fieldLevel * 10) * zoom); }
+      if ((player.upgrades.get('pet') ?? 0) > 0) { g.fillStyle(0x84d5ee); g.fillCircle(p.x + 36 * zoom, p.y - 30 * zoom, 9 * zoom); g.lineStyle(2, 0xe7fbff); g.strokeCircle(p.x + 36 * zoom, p.y - 30 * zoom, 9 * zoom); }
+      const invulnerable = player.invulnerableUntil > (state?.elapsedMs ?? 0) || player.pendingUpgrade || Boolean(player.pendingEvolution);
+      g.fillStyle(color, invulnerable ? .5 : 1); g.fillCircle(p.x, p.y, radius);
       g.lineStyle(id === this.room.sessionId ? 3 : 2, 0xeaffff, .9); g.strokeCircle(p.x, p.y, radius + 2);
       g.fillStyle(0x24333b); g.fillRect(p.x - 22 * zoom, p.y - 29 * zoom, 44 * zoom, 5 * zoom);
       g.fillStyle(0x75e1ca); g.fillRect(p.x - 22 * zoom, p.y - 29 * zoom, 44 * zoom * player.hp / player.maxHp, 5 * zoom);
@@ -103,7 +115,7 @@ export function GameCanvas({ room, fullscreen = false }: { room: Room | null; fu
   useEffect(() => {
     if (!host.current) return;
     const game = new Phaser.Game({ type: Phaser.AUTO, parent: host.current,
-      scale: { mode: fullscreen ? Phaser.Scale.RESIZE : Phaser.Scale.NONE, width: fullscreen ? window.innerWidth : GAME.width, height: fullscreen ? window.innerHeight : GAME.height },
+      scale: { mode: fullscreen ? Phaser.Scale.RESIZE : Phaser.Scale.NONE, width: fullscreen ? window.innerWidth : GAME.viewWidth, height: fullscreen ? window.innerHeight : GAME.viewHeight },
       backgroundColor: '#101a28', scene: new ArenaScene(room) });
     const stop = () => { if (room) room.send(MSG.INPUT, { x: 0, y: 0 }); };
     window.addEventListener('blur', stop);

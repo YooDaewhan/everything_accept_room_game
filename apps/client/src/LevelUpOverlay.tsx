@@ -7,7 +7,7 @@ export function LevelUpOverlay({ room, player }: { room: Room; player: PlayerVie
   const choices = [player.choice0, player.choice1, player.choice2];
   return <div className="levelup-backdrop" role="dialog" aria-modal="true" aria-label="레벨업 강화 선택">
     <div className="levelup-panel">
-      <div className="levelup-heading"><span>LEVEL UP / {String(player.level).padStart(2, '0')}</span><h2>강화를 선택하세요</h2><p>선택하는 동안 내 이동과 공격만 멈춥니다. 전투는 계속 진행됩니다.</p></div>
+      <div className="levelup-heading"><span>LEVEL UP / {String(player.level).padStart(2, '0')}</span><h2>강화를 선택하세요</h2><p>선택 중 무적이며, 선택 후에도 3초간 보호됩니다. 다른 플레이어의 전투는 계속됩니다.</p></div>
       <div className="levelup-choices">{choices.map((rawId, index) => {
         const id = rawId as UpgradeId;
         const upgrade = UPGRADES[id];
