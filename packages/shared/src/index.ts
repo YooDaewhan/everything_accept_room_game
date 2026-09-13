@@ -1,7 +1,7 @@
 export const ROOM_NAME = 'survivors';
 export const MAX_PLAYERS = 2;
 export const NICKNAME_PATTERN = /^[\p{L}\p{N}_ -]{2,16}$/u;
-export const MSG = { INPUT: 'input', START: 'start', CHARACTER: 'character', ROLE: 'role', UPGRADE: 'upgrade', EVOLUTION: 'evolution' } as const;
+export const MSG = { INPUT: 'input', START: 'start', CHARACTER: 'character', ROLE: 'role', UPGRADE: 'upgrade', EVOLUTION: 'evolution', SETTINGS: 'settings', CHAT: 'chat' } as const;
 export const ROLES = {
   assault: { name: '공격', description: '공격력 +10% · 공격 속도 +5%' },
   defense: { name: '방어', description: '받는 피해 -15% · 체력 +10%' },
@@ -67,8 +67,22 @@ export type { WeaponBranch } from './weapons.js';
 export const GAME = { width: 2400, height: 1600, viewWidth: 960, viewHeight: 540, tickMs: 50, patchMs: 100, playerSpeed: 180, playerRadius: 15, playerHp: 100, invulnerableMs: 550, attackMs: 800, attackDamage: 10, projectileSpeed: 460, projectileRadius: 5, projectileLifeMs: 1200, monsterRadius: 16, monsterSpeed: 65, monsterHp: 30, monsterDamage: 10, monsterHitMs: 900, spawnMs: 1400, maxMonsters: 35, gemRadius: 10, gemXp: 5 } as const;
 export type InputMessage = { x: number; y: number; aimX?: number; aimY?: number };
 export type EntityView = { x: number; y: number };
-export type PlayerView = EntityView & { nickname: string; character: CharacterId; role: RoleId; hp: number; maxHp: number; xp: number; xpToNext: number; level: number; pendingUpgrade: boolean; pendingEvolution: string; choice0: string; choice1: string; choice2: string; upgrades: Map<UpgradeId, number>; evolutions: Map<string, string>; invulnerableUntil: number; alive: boolean };
+export type PlayerView = EntityView & { nickname: string; character: CharacterId; role: RoleId; hp: number; maxHp: number; xp: number; xpToNext: number; level: number; pendingUpgrade: boolean; pendingEvolution: string; choice0: string; choice1: string; choice2: string; upgrades: Map<UpgradeId, number>; evolutions: Map<string, string>; invulnerableUntil: number; meleeAttackAt: number; meleeAttackAngle: number; alive: boolean };
 export type MonsterView = EntityView & { kind: MonsterKind; hp: number; maxHp: number };
 export type ProjectileView = EntityView & { weapon: string; owner: string };
 export type GemView = EntityView & { xp: number };
-export type GameView = { code: string; phase: string; hostId: string; map: MapId; difficulty: DifficultyId; elapsedMs: number; kills: number; players: Map<string, PlayerView>; monsters: Map<string, MonsterView>; projectiles: Map<string, ProjectileView>; gems: Map<string, GemView> };
+export type GameView = { code: string; title: string; locked: boolean; phase: string; hostId: string; map: MapId; difficulty: DifficultyId; elapsedMs: number; kills: number; players: Map<string, PlayerView>; monsters: Map<string, MonsterView>; projectiles: Map<string, ProjectileView>; gems: Map<string, GemView> };
+
+export const BOARD_ROOM = 'board';
+export const BOARD_GAMES = {
+  omok: { name: '오목', description: '15x15 판에 돌 5개를 먼저 잇는 쪽이 이깁니다.', cols: 15, rows: 15, seats: ['b', 'w'], seatNames: { b: '흑', w: '백' } },
+  chess: { name: '체스', description: '표준 규칙. 상대 킹을 체크메이트하면 이깁니다.', cols: 8, rows: 8, seats: ['w', 'b'], seatNames: { w: '백', b: '흑' } },
+  janggi: { name: '장기', description: '9x10 판. 상대 궁을 외통으로 몰면 이깁니다. 초가 먼저 둡니다.', cols: 9, rows: 10, seats: ['c', 'h'], seatNames: { c: '초', h: '한' } },
+} as const;
+export type BoardGameId = keyof typeof BOARD_GAMES;
+export const BOARD_MSG = { MOVE: 'move', START: 'start', REMATCH: 'rematch', SKIN: 'skin', SETTINGS: 'settings', CHAT: 'chat' } as const;
+export type BoardPlayerView = { nickname: string; seat: string; fieldSkin: string; pieceSkin: string };
+export type BoardStateView = { code: string; title: string; locked: boolean; game: BoardGameId; phase: string; hostId: string; board: string; turn: string; winner: string; lastMove: string; players: Map<string, BoardPlayerView> };
+export { BOARD_RULES, omokWins } from './board.js';
+export type { BoardRules, MoveResult } from './board.js';
+export { JANGGI_COLS, JANGGI_ROWS, JANGGI_INITIAL, bikjang } from './janggi.js';

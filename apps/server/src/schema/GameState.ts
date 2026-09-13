@@ -19,6 +19,8 @@ export class Player extends Schema {
   @type({ map: 'number' }) upgrades = new MapSchema<number>();
   @type({ map: 'string' }) evolutions = new MapSchema<string>();
   @type('number') invulnerableUntil = 0;
+  @type('number') meleeAttackAt = 0;
+  @type('number') meleeAttackAngle = 0;
   @type('boolean') alive = true;
   constructor() { super(); this.upgrades.set('basic', 1); }
 }
@@ -38,6 +40,8 @@ export class Gem extends Schema {
 }
 export class GameState extends Schema {
   @type('string') code = '';
+  @type('string') title = '서바이버즈 방';
+  @type('boolean') locked = false;
   @type('string') phase = 'lobby';
   @type('string') hostId = '';
   @type('string') map = 'ruins';

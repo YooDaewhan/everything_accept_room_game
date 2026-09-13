@@ -24,7 +24,7 @@ export function CombatView({ room, view, leave }: Props): React.JSX.Element {
   const weaponIds = (Object.keys(UPGRADES) as UpgradeId[]).filter(id => UPGRADES[id].kind === 'weapon') as WeaponId[];
   const ownedWeapons = weaponIds.filter(id => (player?.upgrades.get(id) ?? 0) > 0);
   const bonuses = (Object.keys(UPGRADES) as UpgradeId[]).filter(id => UPGRADES[id].kind !== 'weapon' && (player?.upgrades.get(id) ?? 0) > 0);
-  const zoom = Math.min(window.innerWidth / GAME.viewWidth, window.innerHeight / GAME.viewHeight);
+  const zoom = Math.min(window.innerWidth / GAME.viewWidth, window.innerHeight / GAME.viewHeight) * 0.5;
   const visionLevel = player?.upgrades.get('vision') ?? 0;
   const visionRadius = (320 + visionLevel * 70) * zoom;
   const visionX = window.innerWidth / 2;

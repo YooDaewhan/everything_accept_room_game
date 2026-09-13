@@ -150,6 +150,8 @@ export class Simulation {
     const damage = weaponDamage(weapon, level, character.damage, player.role as RoleId, upgradeLevel(player, 'force'), branch);
     const element: Partial<Record<WeaponId, ElementId>> = { orbit: 'lightning', trail: 'fire', pet: 'water', meteor: 'fire', slowfield: 'water', bounce: 'lightning', cannon: 'fire' };
     if (weapon === 'basic' && character.style === 'melee') {
+      player.meleeAttackAt = this.elapsed;
+      player.meleeAttackAngle = baseAngle;
       for (const [id, monster] of this.state.monsters) if (distance(monster, player) < 75 && Math.cos(Math.atan2(monster.y - player.y, monster.x - player.x) - baseAngle) > 0.35) this.damageMonster(id, monster, damage);
       if (player.role === 'support') for (const [id, ally] of this.state.players) if (id !== ownerId && ally.alive && distance(ally, player) < 75) ally.hp = Math.min(ally.maxHp, ally.hp + Math.round(damage * 0.7));
       return;

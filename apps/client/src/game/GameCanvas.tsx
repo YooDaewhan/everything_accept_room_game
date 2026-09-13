@@ -28,7 +28,7 @@ class ArenaScene extends Phaser.Scene {
     const g = this.graphics;
     const width = this.scale.width;
     const height = this.scale.height;
-    const zoom = Math.min(width / GAME.viewWidth, height / GAME.viewHeight);
+    const zoom = Math.min(width / GAME.viewWidth, height / GAME.viewHeight) * 0.5;
     const state = this.room?.state as GameView | undefined;
     const map = MAPS[state?.map as MapId] ?? MAPS.ruins;
     const me = state?.players?.get(this.room?.sessionId ?? '');
@@ -91,6 +91,23 @@ class ArenaScene extends Phaser.Scene {
       const p = point(visual);
       const radius = GAME.playerRadius * zoom;
       const color = player.alive ? (CHARACTERS[player.character as CharacterId] ?? CHARACTERS.guardian).color : 0x5b6775;
+      const attackAge = state.elapsedMs - player.meleeAttackAt;
+      if (player.alive && player.meleeAttackAt > 0 && attackAge >= 0 && attackAge < 200) {
+        const reach = 75 * zoom;
+        const halfAngle = Math.acos(0.35);
+        const start = player.meleeAttackAngle - halfAngle;
+        const end = player.meleeAttackAngle + halfAngle;
+        g.fillStyle(0xffd184, 0.22 * (1 - attackAge / 200));
+        for (let i = 0; i < 16; i++) {
+          const a = start + (end - start) * i / 16;
+          const b = start + (end - start) * (i + 1) / 16;
+          g.fillTriangle(p.x, p.y, p.x + Math.cos(a) * reach, p.y + Math.sin(a) * reach, p.x + Math.cos(b) * reach, p.y + Math.sin(b) * reach);
+        }
+        g.lineStyle(2, 0xffd184, 0.75 * (1 - attackAge / 200));
+        g.beginPath(); g.moveTo(p.x, p.y);
+        for (let i = 0; i <= 16; i++) g.lineTo(p.x + Math.cos(start + (end - start) * i / 16) * reach, p.y + Math.sin(start + (end - start) * i / 16) * reach);
+        g.closePath(); g.strokePath();
+      }
       if (id === this.room.sessionId) { g.lineStyle(1, color, 0.2); g.strokeCircle(p.x, p.y, radius * 2.3); }
       const fieldLevel = player.upgrades.get('slowfield') ?? 0;
       if (fieldLevel > 0) { g.fillStyle(0x74c7f5, .05); g.fillCircle(p.x, p.y, (130 + fieldLevel * 10) * zoom); g.lineStyle(1, 0x74c7f5, .26); g.strokeCircle(p.x, p.y, (130 + fieldLevel * 10) * zoom); }
