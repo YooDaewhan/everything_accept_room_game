@@ -8,7 +8,7 @@ import { BoardView } from './BoardView';
 import { RoomBrowser, type RoomListing } from './RoomBrowser';
 import './style.css';
 
-const serverUrl = import.meta.env.VITE_GAME_SERVER_URL ?? 'http://localhost:2567';
+const serverUrl = import.meta.env.VITE_GAME_SERVER_URL || (import.meta.env.DEV ? 'http://localhost:2567' : `${window.location.origin}/gs`);
 const client = new Client(serverUrl);
 type GameChoice = 'survivors' | BoardGameId;
 const GAME_CHOICES: { id: GameChoice; name: string; description: string }[] = [
@@ -68,7 +68,12 @@ function App(): React.JSX.Element {
       else if (game === 'survivors') setRoom(await client.create(ROOM_NAME, { nickname: name, map, difficulty }));
       else setRoom(await client.create(BOARD_ROOM, { nickname: name, game }));
     }
-    catch (cause) { setError(join ? `참가 실패: 방이 없거나 가득 찼습니다. (${String(cause)})` : `방 생성 실패: ${String(cause)}`); }
+    catch (cause) {
+      const detail = String(cause);
+      setError(join && /room .* not found/i.test(detail)
+        ? '방을 찾을 수 없습니다. 방장이 현재 방에 있는지 확인하고, 서버가 재시작됐다면 새 방 코드를 받아 주세요.'
+        : `${join ? '참가' : '방 생성'} 실패: ${detail}`);
+    }
     finally { setBusy(false); }
   }
 
