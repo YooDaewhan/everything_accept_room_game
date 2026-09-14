@@ -57,6 +57,9 @@ export function BoardView({ room, leave }: Props): React.JSX.Element {
   const status = view.phase === 'lobby' ? (view.players.size < 2 ? '상대를 기다리는 중입니다.' : isHost ? '시작할 수 있습니다.' : '방장이 시작하기를 기다려 주세요.')
     : view.phase === 'over' ? (view.winner === 'draw' ? '무승부입니다.' : view.winner === room.sessionId ? '이겼습니다.' : '졌습니다.')
     : myTurn ? '내 차례입니다.' : `${opponent?.nickname ?? '상대'}의 차례입니다.`;
+  const winner = [...view.players.entries()].find(([id]) => id === view.winner)?.[1];
+  const resultTitle = view.winner === 'draw' ? '무승부' : winner ? `${winner.nickname} 승리!` : '대국 종료';
+  const resultDetail = view.winner === 'draw' ? '이번 대국은 무승부로 끝났습니다.' : winner ? `${seatNames[winner.seat]} 진영이 이겼습니다.` : '상대가 방을 나갔습니다.';
 
   return <section className="board-screen">
     <div className="board-layout">
@@ -72,7 +75,6 @@ export function BoardView({ room, leave }: Props): React.JSX.Element {
         <ChatPanel room={room} messageType={BOARD_MSG.CHAT} nickname={me?.nickname ?? ''} />
         <div className="board-status" role="status">{status}</div>
         {view.phase === 'lobby' && isHost && <button disabled={view.players.size < 2} onClick={() => room.send(BOARD_MSG.START)}>대국 시작 →</button>}
-        {view.phase === 'over' && <button onClick={() => room.send(BOARD_MSG.REMATCH)}>한 판 더 (선후공 교대)</button>}
       </aside>
       <div className="board-main">
       {view.phase === 'lobby' && isHost && <RoomSettings title={view.title} locked={view.locked} onSave={settings => room.send(BOARD_MSG.SETTINGS, settings)} />}
@@ -95,7 +97,7 @@ export function BoardView({ room, leave }: Props): React.JSX.Element {
           return <button key={index} type="button" disabled={!myTurn} onClick={() => play(index)}
             style={{ '--skin-light': cellSkin.light, '--skin-dark': cellSkin.dark, '--skin-border': cellSkin.border } as React.CSSProperties}
             aria-label={`${index % game.cols + 1}, ${Math.floor(index / game.cols) + 1}${square === '.' ? ' 빈 칸' : ''}${hint ? ' 이동 가능' : ''}`}
-            className={`board-cell ${dark ? 'dark' : ''} ${index === selected ? 'selected' : ''} ${index === lastIndex ? 'last' : ''} ${hint}`}>
+            className={`board-cell ${dark ? 'dark' : ''} ${index === selected ? 'selected' : ''} ${index === lastIndex ? 'last' : ''} ${hint} ${view.game === 'omok' ? `${index % game.cols === 0 ? 'edge-left' : ''} ${index % game.cols === game.cols - 1 ? 'edge-right' : ''} ${row === 0 ? 'edge-top' : ''} ${row === game.rows - 1 ? 'edge-bottom' : ''}` : ''}`}>
             {square === '.' ? null
               : view.game === 'omok' ? <span className={`stone ${square} skin-${pieceSkin.id}`} />
               : view.game === 'chess' ? <span className={`piece skin-${pieceSkin.id} ${square === square.toUpperCase() ? 'white' : 'black'}`}>{CHESS_PIECES[square.toLowerCase()]}</span>
@@ -105,5 +107,6 @@ export function BoardView({ room, leave }: Props): React.JSX.Element {
       </div>}
       </div>
     </div>
+    {view.phase === 'over' && <div className="board-result-backdrop"><div className="board-result-panel" role="dialog" aria-modal="true" aria-labelledby="board-result-title"><span className="eyebrow">MATCH COMPLETE / {game.name}</span><div className="board-result-mark">{view.winner === 'draw' ? '◇' : view.winner === room.sessionId ? '✦' : '◆'}</div><h2 id="board-result-title">{resultTitle}</h2><p>{resultDetail}</p><div className="board-result-actions"><button onClick={() => room.send(BOARD_MSG.REMATCH)}>다시하기 <span>↗</span></button><button className="secondary" onClick={leave}>방 나가기</button></div><small>다시하기를 누르면 선후공이 바뀝니다.</small></div></div>}
   </section>;
 }
